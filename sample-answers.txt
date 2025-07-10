@@ -1,0 +1,19 @@
+Q: What is the capital of France?
+A: Paris
+S: Paris is the capital of France.
+---
+Q: Explain the process of photosynthesis.
+A: Photosynthesis is the process by which plants convert sunlight, carbon dioxide, and water into glucose and oxygen using chlorophyll.
+S: Plants use sunlight and water to make food and oxygen.
+---
+Q: What is the formula for the area of a circle?
+A: A = πr²
+S: Area equals pi times radius squared
+---
+Q: Name three types of rocks.
+A: Igneous, sedimentary, and metamorphic rocks.
+S: Igneous, sedimentary, metamorphic
+---
+Q: What causes the seasons on Earth?
+A: The tilt of Earth's axis as it orbits the sun causes the seasons.
+S: Earth's tilt makes different parts get more or less sunlight during the year.
