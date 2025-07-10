@@ -13,15 +13,27 @@ function App() {
   const [fileName, setFileName] = useState('');
 
   const handleFileUpload = async (content: string, fileName: string) => {
+    console.log('handleFileUpload called with:', fileName);
+    console.log('Content preview:', content.substring(0, 200));
+    
     setIsLoading(true);
     setFileName(fileName);
     
     try {
       const parsedQuestions = parseAnswerFile(content);
+      console.log('Parsed questions:', parsedQuestions.length);
+      
+      if (parsedQuestions.length === 0) {
+        throw new Error('No valid questions found in the file. Please check the format.');
+      }
+      
       const gradedQuestions: Question[] = [];
 
       // Grade each question
-      for (const parsedQuestion of parsedQuestions) {
+      for (let i = 0; i < parsedQuestions.length; i++) {
+        const parsedQuestion = parsedQuestions[i];
+        console.log(`Grading question ${i + 1}:`, parsedQuestion.question);
+        
         const gradingResult = await aiGrader.gradeAnswer(
           parsedQuestion.question,
           parsedQuestion.correctAnswer,
@@ -36,10 +48,12 @@ function App() {
         });
       }
 
+      console.log('All questions graded:', gradedQuestions.length);
       setQuestions(gradedQuestions);
     } catch (error) {
       console.error('Error processing file:', error);
-      alert('Error processing file. Please check the format and try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Error processing file: ${errorMessage}\n\nPlease check the format and try again.`);
     } finally {
       setIsLoading(false);
     }

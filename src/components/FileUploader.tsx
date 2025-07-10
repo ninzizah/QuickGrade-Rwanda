@@ -9,14 +9,35 @@ interface FileUploaderProps {
 const FileUploader: React.FC<FileUploaderProps> = ({ onFileUpload, isLoading }) => {
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log('No file selected');
+      return;
+    }
+
+    console.log('File selected:', file.name, 'Type:', file.type, 'Size:', file.size);
+
+    // Check if it's a text file
+    if (!file.type.includes('text') && !file.name.endsWith('.txt')) {
+      alert('Please select a text (.txt) file');
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (e) => {
       const content = e.target?.result as string;
+      console.log('File content loaded:', content.substring(0, 100) + '...');
       onFileUpload(content, file.name);
     };
+    
+    reader.onerror = (e) => {
+      console.error('Error reading file:', e);
+      alert('Error reading file. Please try again.');
+    };
+    
     reader.readAsText(file);
+    
+    // Reset the input so the same file can be selected again
+    event.target.value = '';
   }, [onFileUpload]);
 
   return (
@@ -46,15 +67,17 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileUpload, isLoading }) 
           </div>
         </div>
 
-        <label className="relative">
+        <div className="relative">
           <input
+            id="file-upload"
             type="file"
             accept=".txt"
             onChange={handleFileUpload}
             disabled={isLoading}
-            className="hidden"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
           />
-          <div className={`
+          <label htmlFor="file-upload" className={`
+            block
             border-2 border-dashed border-blue-300 rounded-lg p-8 
             hover:border-blue-400 hover:bg-blue-50 transition-all duration-200
             ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
@@ -66,8 +89,33 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileUpload, isLoading }) 
             <p className="text-gray-500">
               Supports .txt files with question-answer pairs
             </p>
-          </div>
-        </label>
+          </label>
+        </div>
+        
+        <div className="mt-4">
+          <p className="text-sm text-gray-500">
+            You can also try the sample file: 
+            <button 
+              onClick={() => {
+                // Load the sample file content
+                fetch('/sample-answers.txt')
+                  .then(response => response.text())
+                  .then(content => {
+                    console.log('Sample file loaded');
+                    onFileUpload(content, 'sample-answers.txt');
+                  })
+                  .catch(error => {
+                    console.error('Error loading sample file:', error);
+                    onFileUpload(sampleContent, 'sample-answers.txt');
+                  });
+              }}
+              className="text-blue-600 hover:text-blue-800 underline ml-1"
+              disabled={isLoading}
+            >
+              Load Sample File
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );
