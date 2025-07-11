@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { GraduationCap, LogOut, User, Plus, BarChart3 } from 'lucide-react';
+import AIHealthCheck from './AIHealthCheck';
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -15,11 +16,13 @@ const Navbar: React.FC = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <GraduationCap className="h-8 w-8 text-blue-600" />
-            <span className="text-xl font-bold text-gray-800">MCQ System</span>
+            <span className="text-xl font-bold text-gray-800">AI-MCQ System</span>
           </Link>
 
           {/* Navigation Links */}
           <div className="flex items-center space-x-4">
+            <AIHealthCheck />
+            
             {user.role === 'lecturer' && (
               <Link
                 to="/create-paper"

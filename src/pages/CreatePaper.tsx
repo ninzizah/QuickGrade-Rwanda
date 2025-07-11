@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Plus, Trash2, Save, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Save, AlertCircle, Sparkles, Loader2, Lightbulb } from 'lucide-react';
 
 interface Question {
   question: string;
@@ -35,6 +35,26 @@ const CreatePaper: React.FC = () => {
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [availableTopics, setAvailableTopics] = useState([]);
+  const [aiConfig, setAiConfig] = useState({
+    topic: '',
+    difficulty: 'medium',
+    count: 5
+  });
+
+  // Load available topics on component mount
+  React.useEffect(() => {
+    const loadTopics = async () => {
+      try {
+        const response = await axios.get('/api/ai/topics');
+        setAvailableTopics(response.data);
+      } catch (error) {
+        console.error('Failed to load topics:', error);
+      }
+    };
+    loadTopics();
+  }, []);
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -90,6 +110,33 @@ const CreatePaper: React.FC = () => {
   const removeQuestion = (questionIndex: number) => {
     if (questions.length > 1) {
       setQuestions(questions.filter((_, index) => index !== questionIndex));
+    }
+  };
+
+  // Generate AI questions
+  const generateAIQuestions = async () => {
+    if (!aiConfig.topic) {
+      setError('Please select a topic for AI question generation');
+      return;
+    }
+
+    setAiLoading(true);
+    setError('');
+
+    try {
+      const response = await axios.post('/api/ai/generate-questions', aiConfig);
+      const aiQuestions = response.data.questions;
+      
+      // Add AI-generated questions to existing questions
+      setQuestions([...questions, ...aiQuestions]);
+      
+      // Show success message
+      alert(`Successfully generated ${aiQuestions.length} AI questions!`);
+    } catch (error) {
+      console.error('AI generation error:', error);
+      setError(error.response?.data?.message || 'Failed to generate AI questions');
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -173,6 +220,87 @@ const CreatePaper: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* AI Question Generator */}
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-6 mb-8">
+          <div className="flex items-center mb-4">
+            <Sparkles className="h-6 w-6 text-purple-600 mr-2" />
+            <h2 className="text-xl font-semibold text-purple-800">AI Question Generator</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Topic *
+              </label>
+              <select
+                value={aiConfig.topic}
+                onChange={(e) => setAiConfig({...aiConfig, topic: e.target.value})}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="">Select a topic</option>
+                {availableTopics.map((topic) => (
+                  <option key={topic.id} value={topic.id}>
+                    {topic.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Difficulty
+              </label>
+              <select
+                value={aiConfig.difficulty}
+                onChange={(e) => setAiConfig({...aiConfig, difficulty: e.target.value})}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Number of Questions
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="10"
+                value={aiConfig.count}
+                onChange={(e) => setAiConfig({...aiConfig, count: parseInt(e.target.value)})}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={generateAIQuestions}
+            disabled={aiLoading || !aiConfig.topic}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-md font-medium flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {aiLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Generating AI Questions...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-2" />
+                Generate AI Questions
+              </>
+            )}
+          </button>
+
+          <div className="mt-3 text-sm text-purple-600">
+            <Lightbulb className="h-4 w-4 inline mr-1" />
+            AI will generate high-quality multiple choice questions based on your selected topic and difficulty level.
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Paper Details */}
@@ -278,9 +406,16 @@ const CreatePaper: React.FC = () => {
             {questions.map((question, questionIndex) => (
               <div key={questionIndex} className="border border-gray-200 rounded-lg p-6">
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-lg font-medium text-gray-800">
-                    Question {questionIndex + 1}
-                  </h3>
+                  <div className="flex items-center">
+                    <h3 className="text-lg font-medium text-gray-800">
+                      Question {questionIndex + 1}
+                    </h3>
+                    {question.aiGenerated && (
+                      <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                        AI Generated
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center space-x-2">
                     <div className="flex items-center space-x-2">
                       <label className="text-sm text-gray-600">Points:</label>

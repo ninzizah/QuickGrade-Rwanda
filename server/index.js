@@ -7,6 +7,7 @@ const authRoutes = require('./routes/auth');
 const paperRoutes = require('./routes/papers');
 const submissionRoutes = require('./routes/submissions');
 const adminRoutes = require('./routes/admin');
+const aiRoutes = require('./routes/ai');
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/papers', paperRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
