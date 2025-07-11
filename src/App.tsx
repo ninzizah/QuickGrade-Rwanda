@@ -1,110 +1,93 @@
-import React, { useState } from 'react';
-import Header from './components/Header';
-import FileUploader from './components/FileUploader';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Navbar from './components/Navbar';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import StudentDashboard from './pages/StudentDashboard';
+import LecturerDashboard from './pages/LecturerDashboard';
+import AdminDashboard from './pages/AdminDashboard';
+import TakePaper from './pages/TakePaper';
+import CreatePaper from './pages/CreatePaper';
+import ViewSubmissions from './pages/ViewSubmissions';
 import LoadingSpinner from './components/LoadingSpinner';
-import GradingResults from './components/GradingResults';
-import { Question } from './types';
-import { parseAnswerFile } from './utils/fileParser';
-import aiGrader from './services/aiGrader';
 
-function App() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [fileName, setFileName] = useState('');
+const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({ 
+  children, 
+  allowedRoles 
+}) => {
+  const { user, loading } = useAuth();
 
-  const handleFileUpload = async (content: string, fileName: string) => {
-    console.log('handleFileUpload called with:', fileName);
-    console.log('Content preview:', content.substring(0, 200));
-    
-    setIsLoading(true);
-    setFileName(fileName);
-    
-    try {
-      const parsedQuestions = parseAnswerFile(content);
-      console.log('Parsed questions:', parsedQuestions.length);
-      
-      if (parsedQuestions.length === 0) {
-        throw new Error('No valid questions found in the file. Please check the format.');
-      }
-      
-      const gradedQuestions: Question[] = [];
+  if (loading) {
+    return <LoadingSpinner message="Loading..." />;
+  }
 
-      // Grade each question
-      for (let i = 0; i < parsedQuestions.length; i++) {
-        const parsedQuestion = parsedQuestions[i];
-        console.log(`Grading question ${i + 1}:`, parsedQuestion.question);
-        
-        const gradingResult = await aiGrader.gradeAnswer(
-          parsedQuestion.question,
-          parsedQuestion.correctAnswer,
-          parsedQuestion.studentAnswer
-        );
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
-        gradedQuestions.push({
-          ...parsedQuestion,
-          score: gradingResult.score,
-          feedback: gradingResult.feedback,
-          gradedAt: new Date()
-        });
-      }
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/" replace />;
+  }
 
-      console.log('All questions graded:', gradedQuestions.length);
-      setQuestions(gradedQuestions);
-    } catch (error) {
-      console.error('Error processing file:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      alert(`Error processing file: ${errorMessage}\n\nPlease check the format and try again.`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  return <>{children}</>;
+};
 
-  const handleNewFile = () => {
-    setQuestions([]);
-    setFileName('');
-  };
+const AppContent: React.FC = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingSpinner message="Loading application..." />;
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-      <Header />
-      
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {questions.length === 0 && !isLoading && (
-          <FileUploader onFileUpload={handleFileUpload} isLoading={isLoading} />
-        )}
-        
-        {isLoading && (
-          <LoadingSpinner message="Grading answers with AI..." />
-        )}
-        
-        {questions.length > 0 && !isLoading && (
-          <div>
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-800">Grading Results</h2>
-              <button
-                onClick={handleNewFile}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors duration-200"
-              >
-                Grade New File
-              </button>
-            </div>
-            <GradingResults questions={questions} fileName={fileName} />
-          </div>
-        )}
-      </div>
-      
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-8 mt-16">
-        <div className="max-w-6xl mx-auto px-4 text-center">
-          <p className="text-gray-300">
-            QuickGrade-Rwanda - AI-Powered Homework Grader | Built for Rwandan Education
-          </p>
-          <p className="text-sm text-gray-400 mt-2">
-            Supporting Rwandan teachers and students
-          </p>
-        </div>
-      </footer>
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      <main className="container mx-auto px-4 py-8">
+        <Routes>
+          {/* Public routes */}
+          <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
+          <Route path="/register" element={!user ? <Register /> : <Navigate to="/" replace />} />
+          
+          {/* Protected routes */}
+          <Route path="/" element={
+            <ProtectedRoute>
+              {user?.role === 'student' && <StudentDashboard />}
+              {user?.role === 'lecturer' && <LecturerDashboard />}
+              {user?.role === 'admin' && <AdminDashboard />}
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/take-paper/:id" element={
+            <ProtectedRoute allowedRoles={['student']}>
+              <TakePaper />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/create-paper" element={
+            <ProtectedRoute allowedRoles={['lecturer']}>
+              <CreatePaper />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/submissions/:paperId" element={
+            <ProtectedRoute allowedRoles={['lecturer']}>
+              <ViewSubmissions />
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </main>
     </div>
+  );
+};
+
+function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </Router>
   );
 }
 
