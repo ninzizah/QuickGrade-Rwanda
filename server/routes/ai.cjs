@@ -1,6 +1,6 @@
 const express = require('express');
-const aiService = require('../services/aiService');
-const { auth, requireRole } = require('../middleware/auth');
+const aiService = require('../services/aiService.cjs');
+const { auth, requireRole } = require('../middleware/auth.cjs');
 
 const router = express.Router();
 

@@ -3,11 +3,11 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
 
-const authRoutes = require('./routes/auth');
-const paperRoutes = require('./routes/papers');
-const submissionRoutes = require('./routes/submissions');
-const adminRoutes = require('./routes/admin');
-const aiRoutes = require('./routes/ai');
+const authRoutes = require('./routes/auth.cjs');
+const paperRoutes = require('./routes/papers.cjs');
+const submissionRoutes = require('./routes/submissions.cjs');
+const adminRoutes = require('./routes/admin.cjs');
+const aiRoutes = require('./routes/ai.cjs');
 
 const app = express();
 

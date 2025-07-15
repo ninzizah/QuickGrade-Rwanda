@@ -1,7 +1,7 @@
 const express = require('express');
-const Submission = require('../models/Submission');
-const Paper = require('../models/Paper');
-const { auth, requireRole } = require('../middleware/auth');
+const Submission = require('../models/Submission.cjs');
+const Paper = require('../models/Paper.cjs');
+const { auth, requireRole } = require('../middleware/auth.cjs');
 
 const router = express.Router();
 
